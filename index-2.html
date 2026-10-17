@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>狼人殺自動法官</title>
+<style>
+:root{
+  --bg:#13152a;--card:#1e2240;--card2:#2a2f55;--text:#ececf7;--muted:#9ca2c6;
+  --accent:#f2b84b;--wolf:#e45664;--good:#4fc38a;--line:#363c6b;--shadow:0 6px 24px rgba(0,0,0,.35);
+}
+body.day{
+  --bg:#f5efe2;--card:#fffaf1;--card2:#f1e6d0;--text:#2b261f;--muted:#7c7060;--line:#e1d3b8;--shadow:0 6px 20px rgba(120,90,40,.15);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;background:var(--bg);color:var(--text);
+  transition:background .8s,color .8s;line-height:1.6;min-height:100vh}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--line);transition:background .8s}
+header h1{font-size:18px;margin:0}
+#phaseTag{font-size:13px;padding:3px 10px;border-radius:99px;background:var(--card2);color:var(--muted)}
+main{max-width:560px;margin:0 auto;padding:16px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 10px;font-size:18px}
+.card h3{font-size:15px;margin:16px 0 6px}
+.center{text-align:center}
+.muted{color:var(--muted);font-size:13px;margin:6px 0}
+.big{font-size:30px;font-weight:700;margin:6px 0}
+.bad{color:var(--wolf)}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--text);padding:10px 14px;transition:transform .1s,opacity .2s}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{display:block;width:100%;background:var(--accent);color:#2a1d00;border:none;font-weight:700;padding:14px;font-size:16px;margin-top:8px}
+button.danger{background:var(--wolf);color:#fff;border:none}
+button.ghost{background:transparent}
+.row{display:flex;gap:8px;margin-top:10px}
+.row>button{flex:1;margin-top:0}
+.stepper{display:flex;align-items:center;justify-content:center;gap:18px}
+.stepper button{width:44px;height:44px;font-size:22px;padding:0}
+.stepper.small{gap:10px}
+.stepper.small button{width:34px;height:34px;font-size:18px}
+.role-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.role-row:last-of-type{border-bottom:none}
+.role-row input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
+select{font:inherit;padding:6px;border-radius:8px;background:var(--card2);color:var(--text);border:1px solid var(--line);max-width:60%}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.names input{font:inherit;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--text);min-width:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:10px 0}
+.grid button{padding:10px 6px;font-size:14px}
+.grid button.sel{background:var(--accent);color:#2a1d00;border-color:var(--accent);font-weight:700}
+.grid button.dead{text-decoration:line-through}
+.caption{display:flex;align-items:center;gap:10px;background:var(--card2);border-left:4px solid var(--accent);border-radius:12px;padding:12px 14px;margin:10px 0;text-align:left;font-size:18px}
+.caption .txt{flex:1}
+.caption button{padding:6px 10px;font-size:13px}
+.wave{display:inline-flex;gap:3px;align-items:flex-end;height:18px}
+.wave i{width:3px;background:var(--accent);border-radius:2px;animation:wave 1s infinite ease-in-out}
+.wave i:nth-child(2){animation-delay:.15s}.wave i:nth-child(3){animation-delay:.3s}
+@keyframes wave{0%,100%{height:4px}50%{height:18px}}
+.note{background:rgba(242,184,75,.15);border-radius:10px;padding:8px 12px;font-size:14px;margin:8px 0}
+.idle{min-height:60vh;display:flex;flex-direction:column;justify-content:center}
+.moon{font-size:84px;animation:glow 3s infinite ease-in-out}
+@keyframes glow{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+.rolecard{border-radius:18px;padding:26px 16px;margin:10px 0;background:var(--card2);animation:flip .5s ease}
+.rolecard .icon{font-size:64px}
+.rolecard.wolf{background:linear-gradient(160deg,#5a1d2a,#2b1020);color:#fff}
+.rolecard.god{background:linear-gradient(160deg,#1f3d64,#162540);color:#fff}
+.rolecard.villager{background:linear-gradient(160deg,#2f4a3a,#1b2b22);color:#fff}
+@keyframes flip{from{transform:rotateY(90deg);opacity:0}to{transform:rotateY(0);opacity:1}}
+.result{font-size:46px;margin:8px 0}
+.timer{font-size:64px;font-weight:800;font-variant-numeric:tabular-nums;margin:6px 0 4px;transition:color .3s}
+.timer.muted{font-size:28px}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;margin-left:4px}
+.tag.good{background:var(--good);color:#fff}
+.tag.off{background:var(--line);color:var(--muted)}
+.roster{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.roster div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}
+.roster .out{opacity:.5;text-decoration:line-through}
+.log{padding-left:20px;font-size:13px;color:var(--muted);margin:4px 0}
+details summary{cursor:pointer;font-weight:700}
+.banner{font-size:34px;font-weight:800;margin:6px 0}
+.fade{animation:fade .4s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<header><h1>🐺 狼人殺自動法官</h1><span id="phaseTag">設定</span></header>
+<main id="main"></main>
+
+<script>
+const ROLES = {
+  wolf:     {name:'狼人',   icon:'🐺', team:'wolf',     desc:'每晚和同伴一起選一名玩家殺死。白天隱藏身分，誤導好人投錯票。'},
+  seer:     {name:'預言家', icon:'🔮', team:'god',      desc:'每晚可以查驗一名玩家，得知他是好人還是狼人。'},
+  witch:    {name:'女巫',   icon:'🧪', team:'god',      desc:'有一瓶解藥和一瓶毒藥，各只能用一次，同一晚不能兩瓶都用。'},
+  hunter:   {name:'獵人',   icon:'🏹', team:'god',      desc:'出局時可以開槍帶走一名玩家（被毒死則不能開槍）。'},
+  guard:    {name:'守衛',   icon:'🛡️', team:'god',      desc:'每晚守護一名玩家免於狼刀，不能連續兩晚守同一人。'},
+  villager: {name:'村民',   icon:'👤', team:'villager', desc:'沒有特殊能力，靠發言和推理找出狼人。'}
+};
+const GODS = ['seer','witch','hunter','guard'];
+const NIGHT_ORDER = ['guard','wolf','witch','seer'];
+const CAUSE = {kill:'夜晚死亡', poison:'夜晚死亡', shot:'被獵人帶走', vote:'被投票放逐'};
+const ABORT = 'abort';
+
+let S = {
+  phase:'setup', n:9, names:[],
+  cfg:{wolf:3, seer:1, witch:1, hunter:1, guard:0},
+  rules:{win:'edge', witchSelf:false, sheriff:true},
+  voice:true, gap:4, lastSec:60, talkSec:90,
+  panelOpen:false, runId:0, sayId:0, speaking:false, caption:''
+};
+
+/* ---------- 小工具 ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nm = i => `${i+1}號${S.players[i].name}`;          // 朗讀用（純文字）
+const pname = i => esc(`${i+1}號 ${S.players[i].name}`);  // 畫面用（已跳脫）
+const aliveOf = r => S.players.map((p,i)=>i).filter(i => S.players[i].role===r && S.players[i].alive);
+const hasRole = r => S.players.some(p => p.role===r);
+const isWolf = i => S.players[i].role==='wolf';
+function log(t){ S.log.push(t); }
+
+/* ---------- 語音與自動流程 ---------- */
+let zhVoice = null;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices();
+  zhVoice = vs.find(v=>/zh[-_]TW/i.test(v.lang)) || vs.find(v=>/^zh/i.test(v.lang)) || null;
+}
+const canSpeak = 'speechSynthesis' in window;
+if(canSpeak){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+
+function utter(text, onEnd){
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/……/g,'，'));
+  u.lang = 'zh-TW'; if(zhVoice) u.voice = zhVoice; u.rate = 0.95;
+  if(onEnd){ u.onend = onEnd; u.onerror = onEnd; }
+  speechSynthesis.speak(u);
+}
+// 朗讀一句話，念完才 resolve；遊戲被中止時 reject
+function say(text){
+  const id = S.runId, my = ++S.sayId;
+  S.caption = text; S.speaking = true; render();
+  return new Promise((res, rej) => {
+    let done = false;
+    const fin = () => {
+      if(done) return; done = true;
+      if(S.sayId===my){ S.speaking = false; if(id===S.runId) render(); }
+      id===S.runId ? res() : rej(ABORT);
+    };
+    if(S.voice && canSpeak){ utter(text, fin); setTimeout(fin, 1500 + text.length*350); }
+    else setTimeout(fin, 1000 + text.length*150);
+  });
+}
+function wait(ms){
+  const id = S.runId;
+  return new Promise((res, rej) => setTimeout(() => id===S.runId ? res() : rej(ABORT), ms));
+}
+// 等玩家在畫面上完成操作
+function waitAction(){
+  const id = S.runId;
+  return new Promise((res, rej) => { S.actionRes = () => id===S.runId ? res() : rej(ABORT); });
+}
+function act(){ const r = S.actionRes; S.actionRes = null; if(r) r(); }
+function replay(){ if(canSpeak && S.caption) utter(S.caption); }
+function testVoice(){ if(!canSpeak){ S.voiceMsg='這個瀏覽器不支援語音朗讀，會改用文字顯示。'; render(); return; } utter('天黑請閉眼。'); }
+
+let wakeLock = null;
+async function keepAwake(){ try{ if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); }catch(e){} }
+
+function caption(){
+  if(!S.caption) return '';
+  return `<div class="caption"><span class="txt">${S.speaking?'<span class="wave"><i></i><i></i><i></i></span> ':'🔊 '}${esc(S.caption)}</span>
+    ${!S.speaking && S.voice && canSpeak ? '<button class="ghost" onclick="replay()">🔁 重播</button>' : ''}</div>`;
+}
+
+/* ---------- 設定 ---------- */
+function preset(n){
+  S.cfg = { wolf: n<=7 ? 2 : n<=11 ? 3 : 4, seer:1, witch:1, hunter: n>=8 ? 1 : 0, guard: n>=12 ? 1 : 0 };
+}
+function villagerCount(){ const c=S.cfg; return S.n - c.wolf - GODS.reduce((a,r)=>a+c[r],0); }
+function changeN(d){ S.n = Math.min(16, Math.max(6, S.n+d)); preset(S.n); render(); }
+function changeWolf(d){ S.cfg.wolf = Math.min(Math.floor((S.n-1)/2), Math.max(1, S.cfg.wolf+d)); render(); }
+function toggleGod(r,on){ S.cfg[r] = on?1:0; render(); }
+function changeGap(d){ S.gap = Math.min(10, Math.max(2, S.gap+d)); render(); }
+
+function renderSetup(){
+  const c = S.cfg, vill = villagerCount();
+  let names = '';
+  for(let i=0;i<S.n;i++)
+    names += `<input placeholder="玩家${i+1}" value="${esc(S.names[i]||'')}" oninput="S.names[${i}]=this.value">`;
+  return `
+  <section class="card fade"><h2>① 玩家人數</h2>
+    <div class="stepper"><button onclick="changeN(-1)">−</button><span class="big">${S.n}</span><button onclick="changeN(1)">＋</button></div>
+    <p class="muted center">支援 6～16 人，調整人數會自動套用推薦配置。</p></section>
+
+  <section class="card fade"><h2>② 玩家名字</h2>
+    <div class="names">${names}</div>
+    <p class="muted">可以留空，會用「玩家1、玩家2…」代替。建議照座位順序填。</p></section>
+
+  <section class="card fade"><h2>③ 角色配置</h2>
+    <div class="role-row"><span>🐺 狼人</span>
+      <div class="stepper small"><button onclick="changeWolf(-1)">−</button><b>${c.wolf}</b><button onclick="changeWolf(1)">＋</button></div></div>
+    ${GODS.map(r=>`<label class="role-row"><span>${ROLES[r].icon} ${ROLES[r].name}</span>
+      <input type="checkbox" ${c[r]?'checked':''} onchange="toggleGod('${r}',this.checked)"></label>`).join('')}
+    <div class="role-row"><span>👤 村民（自動補滿）</span><b class="${vill<0?'bad':''}">${vill}</b></div>
+    ${vill<0?'<p class="bad">角色數超過玩家人數，請減少狼人或神職。</p>':''}
+  </section>
+
+  <section class="card fade"><h2>④ 規則</h2>
+    <label class="role-row"><span>勝利條件</span>
+      <select onchange="S.rules.win=this.value">
+        <option value="edge" ${S.rules.win==='edge'?'selected':''}>屠邊：神職或村民其一死光</option>
+        <option value="city" ${S.rules.win==='city'?'selected':''}>屠城：好人全部死光</option>
+      </select></label>
+    <label class="role-row"><span>女巫可以自救</span>
+      <input type="checkbox" ${S.rules.witchSelf?'checked':''} onchange="S.rules.witchSelf=this.checked"></label>
+    <label class="role-row"><span>🎖️ 警長競選</span>
+      <input type="checkbox" ${S.rules.sheriff?'checked':''} onchange="S.rules.sheriff=this.checked"></label>
+  </section>
+
+  <section class="card fade"><h2>⑤ 自動主持</h2>
+    <label class="role-row"><span>🔊 語音朗讀台詞</span>
+      <input type="checkbox" ${S.voice?'checked':''} onchange="S.voice=this.checked;render()"></label>
+    <div class="role-row"><span>閉眼後等待秒數</span>
+      <div class="stepper small"><button onclick="changeGap(-1)">−</button><b>${S.gap}</b><button onclick="changeGap(1)">＋</button></div></div>
+    <label class="role-row"><span>遺言時間</span>
+      <select onchange="S.lastSec=+this.value">${secOptions([30,60,90,0], S.lastSec)}</select></label>
+    <label class="role-row"><span>每人發言時間</span>
+      <select onchange="S.talkSec=+this.value">${secOptions([60,90,120,180,0], S.talkSec)}</select></label>
+    <button onclick="testVoice()" style="margin-top:8px">▶︎ 測試語音</button>
+    ${S.voiceMsg?`<p class="note">${S.voiceMsg}</p>`:''}
+    <p class="muted">請把手機音量調大、關閉靜音模式。關閉語音時，台詞會以文字顯示並自動計時。</p>
+  </section>
+
+  <button class="primary" ${vill<0?'disabled':''} onclick="startGame()">🎲 隨機發牌，開始遊戲</button>`;
+}
+
+/* ---------- 發牌 ---------- */
+function startGame(){
+  S.runId++; if(canSpeak) speechSynthesis.cancel();
+  const roles = Array(S.cfg.wolf).fill('wolf');
+  GODS.forEach(r => { if(S.cfg[r]) roles.push(r); });
+  while(roles.length < S.n) roles.push('villager');
+  for(let i=roles.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [roles[i],roles[j]]=[roles[j],roles[i]]; }
+  S.players = roles.map((r,i)=>({name:(S.names[i]||'').trim()||`玩家${i+1}`, role:r, alive:true, cause:null}));
+  Object.assign(S, {phase:'deal', dealIdx:0, dealShown:false, day:1, potions:{save:true,poison:true},
+    guardLast:null, log:[], winner:null, sel:null, check:null, awake:null, caption:'', confirmQuit:false,
+    sheriff:null, elect:null, badge:null, multi:[], turn:null, dayStage:null, lastDeaths:[]});
+  render(); window.scrollTo(0,0);
+}
+function nextDeal(){ S.dealShown=false; S.dealIdx++; render(); }
+
+function renderDeal(){
+  if(S.dealIdx >= S.n){
+    return `<div class="card center fade"><div class="big">🌙</div><h2>所有人都看過身分了</h2>
+      <p>請把手機放在桌子中央、大家圍坐。<br>按下開始後，手機會自動主持整場遊戲。</p>
+      <p class="muted">聽到自己的角色被叫到時才睜眼，在手機上操作完會自動進入下一步。</p>
+      <button class="primary" onclick="startFirstNight()">開始第 1 晚</button></div>`;
+  }
+  const i = S.dealIdx, p = S.players[i];
+  if(!S.dealShown){
+    return `<div class="card center fade"><p class="muted">發牌 ${i+1} / ${S.n}</p>
+      <h2>請把手機交給</h2><div class="big">${pname(i)}</div>
+      <p class="muted">其他人請不要偷看 👀</p>
+      <button class="primary" onclick="S.dealShown=true;render()">我是 ${esc(p.name)}，翻牌看身分</button></div>`;
+  }
+  const R = ROLES[p.role];
+  const mates = p.role==='wolf' ? S.players.map((q,j)=>j).filter(j=>j!==i && isWolf(j)).map(pname).join('、') : '';
+  return `<div class="card center"><p class="muted">${pname(i)} 的身分是</p>
+    <div class="rolecard ${R.team}"><div class="icon">${R.icon}</div><div class="big">${R.name}</div><p>${R.desc}</p>
+    ${mates?`<p>你的狼隊友：${mates}</p>`:''}</div>
+    <button class="primary" onclick="nextDeal()">記住了，蓋牌交給下一位</button></div>`;
+}
+
+/* ---------- 夜晚（自動流程） ---------- */
+function ask(r){
+  return {
+    guard:'守衛，今晚要守護誰？',
+    wolf: S.day===1 ? '狼人請互相確認同伴。今晚要殺誰？' : '狼人，今晚要殺誰？',
+    witch:'女巫，昨晚他死了，你要使用解藥嗎？要使用毒藥嗎？',
+    seer:'預言家，你今晚要查驗誰？'
+  }[r];
+}
+function startFirstNight(){ S.day=1; keepAwake(); runNight(); }
+function goNight(){ S.day++; keepAwake(); runNight(); }
+
+async function runNight(){
+  S.runId++;
+  S.phase='night'; S.awake=null; S.sel=null; S.check=null;
+  S.night = {guard:null, kill:null, save:false, poison:null, check:null};
+  const roles = NIGHT_ORDER.filter(hasRole);
+  try{
+    await say(`第${S.day}晚，天黑請閉眼。`);
+    await wait(S.gap*1000);
+    for(const r of roles){
+      await say(`${ROLES[r].name}請睜眼。`);
+      if(aliveOf(r).length){
+        S.awake=r; S.sel=null;
+        const done = waitAction();
+        say(ask(r)).catch(()=>{});
+        await done;
+      } else {
+        // 角色已出局：照念台詞並假裝等待，避免玩家從節奏猜出
+        await say(ask(r));
+        await wait(4000 + Math.random()*3000);
+      }
+      S.awake=null; S.sel=null;
+      await say(`${ROLES[r].name}請閉眼。`);
+      await wait(S.gap*1000);
+    }
+    resolveNight();
+    await say('天亮了，請大家睜眼。');
+    await runDay();
+  }catch(e){ if(e!==ABORT) console.error(e); }
+}
+
+function pick(i){ S.sel = (S.sel===i ? null : i); render(); }
+function picker(exclude=[]){
+  return `<div class="grid">${S.players.map((p,i)=>{
+    const off = !p.alive || exclude.includes(i);
+    return `<button class="${S.sel===i?'sel':''} ${!p.alive?'dead':''}" ${off?'disabled':''} onclick="pick(${i})">${pname(i)}${badgeIcon(i)}</button>`;
+  }).join('')}</div>`;
+}
+const badgeIcon = i => S.sheriff===i ? ' 🎖️' : '';
+// 只列出指定玩家；multi=true 可複選
+function listPicker(list, multi){
+  return `<div class="grid">${list.map(i=>{
+    const on = multi ? S.multi.includes(i) : S.sel===i;
+    return `<button class="${on?'sel':''}" onclick="${multi?`pickMulti(${i})`:`pick(${i})`}">${pname(i)}</button>`;
+  }).join('')}</div>`;
+}
+function pickMulti(i){ S.multi = S.multi.includes(i) ? S.multi.filter(x=>x!==i) : [...S.multi, i]; render(); }
+
+function renderNight(){
+  const N = S.night, r = S.awake;
+  if(!r){
+    return `<div class="card center idle fade"><div class="moon">🌙</div><div class="big">第 ${S.day} 晚</div>
+      ${caption()}<p class="muted">夜晚進行中。聽到自己的角色被叫到再睜眼。</p></div>`;
+  }
+  let h = `<div class="card center fade"><h2>${ROLES[r].icon} ${ROLES[r].name}</h2>${caption()}`;
+
+  if(r==='guard'){
+    if(S.guardLast!=null) h += `<p class="note">昨晚守了 ${pname(S.guardLast)}，今晚不能連守。</p>`;
+    h += picker(S.guardLast!=null?[S.guardLast]:[])
+       + `<div class="row"><button onclick="confirmGuard(true)">空守</button>
+          <button class="primary" ${S.sel==null?'disabled':''} onclick="confirmGuard(false)">確認守護</button></div>`;
+  }
+  else if(r==='wolf'){
+    h += `<p class="muted">存活的狼人：${aliveOf('wolf').map(pname).join('、')}</p>
+          <p class="muted">請用手勢討論，由一位狼人點選目標。</p>`
+       + picker()
+       + `<div class="row"><button onclick="confirmKill(true)">空刀</button>
+          <button class="primary danger" ${S.sel==null?'disabled':''} onclick="confirmKill(false)">確認擊殺</button></div>`;
+  }
+  else if(r==='witch'){
+    const w = aliveOf('witch');
+    h += `<h3>💊 解藥</h3>`;
+    if(!S.potions.save) h += `<p class="note">解藥已經用過了。</p>`;
+    else if(N.kill==null) h += `<p class="note">今晚沒有人被殺。</p>`;
+    else if(w.includes(N.kill) && !S.rules.witchSelf) h += `<p class="note">今晚被殺的是你自己（${pname(N.kill)}），規則不能自救。</p>`;
+    else h += `<p>今晚被殺的是 <b>${pname(N.kill)}</b>，要救嗎？</p>
+      <div class="row"><button class="${!N.save?'primary':''}" onclick="S.night.save=false;render()">不救</button>
+      <button class="${N.save?'primary':''}" onclick="S.night.save=true;S.sel=null;render()">使用解藥</button></div>`;
+    h += `<h3>☠️ 毒藥</h3>`;
+    if(!S.potions.poison) h += `<p class="note">毒藥已經用過了。</p>`;
+    else if(N.save) h += `<p class="note">今晚已用解藥，不能再用毒藥。</p>`;
+    else h += `<p class="muted">要毒的話點選玩家，不毒就直接按完成。</p>` + picker();
+    h += `<button class="primary" onclick="confirmWitch()">完成${S.sel!=null && !N.save && S.potions.poison?`（毒 ${pname(S.sel)}）`:''}</button>`;
+  }
+  else if(r==='seer'){
+    if(N.check==null){
+      h += picker(aliveOf('seer'))
+         + `<button class="primary" ${S.sel==null?'disabled':''} onclick="S.night.check=S.sel;render()">查驗</button>`;
+    } else {
+      const bad = isWolf(N.check);
+      h += `<p>${pname(N.check)} 是</p><div class="result">${bad?'👎':'👍'}</div>
+            <div class="big ${bad?'bad':''}">${bad?'狼人':'好人'}</div>
+            <button class="primary" onclick="act()">看完了</button>`;
+    }
+  }
+  return h + `</div>`;
+}
+
+function confirmGuard(skip){ S.night.guard = skip?null:S.sel; act(); }
+function confirmKill(skip){ S.night.kill = skip?null:S.sel; act(); }
+function confirmWitch(){
+  const N = S.night;
+  if(N.save) S.potions.save = false;
+  else if(S.sel!=null && S.potions.poison){ N.poison = S.sel; S.potions.poison = false; }
+  act();
+}
+
+function resolveNight(){
+  const N = S.night, deaths = [];
+  if(N.kill!=null){
+    const guarded = N.guard===N.kill;
+    if(guarded === N.save) deaths.push({i:N.kill, cause:'kill'});   // 沒守沒救 → 死；同守同救 → 也死
+  }
+  if(N.poison!=null){
+    const d = deaths.find(x=>x.i===N.poison);
+    if(d) d.cause='poison'; else deaths.push({i:N.poison, cause:'poison'});
+  }
+  deaths.forEach(d => { const p=S.players[d.i]; p.alive=false; p.cause=d.cause; });
+
+  const parts = [];
+  if(hasRole('guard')) parts.push(`守衛守 ${N.guard!=null?pname(N.guard):'（空守）'}`);
+  parts.push(`狼人刀 ${N.kill!=null?pname(N.kill):'（空刀）'}`);
+  if(N.save) parts.push('女巫用解藥');
+  if(N.poison!=null) parts.push(`女巫毒 ${pname(N.poison)}`);
+  if(N.check!=null) parts.push(`預言家查 ${pname(N.check)}（${isWolf(N.check)?'狼人':'好人'}）`);
+  log(`第${S.day}晚：${parts.join('，')}。死亡：${deaths.length?deaths.map(d=>pname(d.i)).join('、'):'平安夜'}`);
+
+  S.guardLast = N.guard;
+  S.lastDeaths = deaths.map(d=>d.i);
+  S.phase='day'; S.dayStage='announce'; S.sel=null; S.exiled=null;
+}
+
+/* ---------- 發言計時 ---------- */
+function secOptions(list, cur){
+  return list.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s?`${s} 秒`:'不限時'}</option>`).join('');
+}
+const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+// 一段發言：倒數計時，時間到或按「說完了」就結束
+async function speechTurn(label, secs){
+  const id = S.runId;
+  S.turn = {label, left:secs, total:secs, expired:false};
+  const done = waitAction();
+  render();
+  let iv = null;
+  if(secs > 0){
+    iv = setInterval(() => {
+      if(id!==S.runId || !S.turn){ clearInterval(iv); return; }
+      S.turn.left--;
+      const t = document.getElementById('timer');
+      if(t){ t.textContent = fmt(S.turn.left); t.classList.toggle('bad', S.turn.left<=10); }
+      if(S.turn.left <= 0){ clearInterval(iv); S.turn.expired = true; act(); }
+    }, 1000);
+  }
+  await done;
+  clearInterval(iv);
+  const expired = S.turn && S.turn.expired;
+  S.turn = null;
+  if(expired) await say('時間到。');
+}
+// 從 start 往 dir 方向（+1 號碼遞增 / -1 遞減）列出存活玩家
+function walk(start, dir, filter){
+  const n = S.n, out = [];
+  for(let k=0;k<n;k++){ const i=((start+dir*k)%n+n)%n; if(filter(i)) out.push(i); }
+  return out;
+}
+const rotate = (list, k) => list.slice(k).concat(list.slice(0,k));
+// 發言順序：有警長 → 警長選方向、警長最後發言（歸票）；沒警長 → 從第一位死者下一位開始，平安夜隨機
+function speakingOrder(){
+  const alive = i => S.players[i].alive;
+  const sh = S.sheriff;
+  if(sh!=null && alive(sh)){
+    const dir = S.orderDir || 1;
+    return walk(sh+dir, dir, i => alive(i) && i!==sh).concat([sh]);
+  }
+  const d = S.lastDeaths;
+  const start = d.length ? d[0]+1 : Math.floor(Math.random()*S.n);
+  return walk(start, 1, alive);
+}
+function nextAliveFrom(sh, dir){ return walk(sh+dir, dir, i => S.players[i].alive && i!==sh)[0]; }
+
+/* ---------- 警長 ---------- */
+async function runElection(){
+  // 首夜死者此時還沒公布，所以仍可參選
+  const pool = S.players.map((p,i)=>i).filter(i => S.players[i].alive || S.lastDeaths.includes(i));
+  S.dayStage='elect'; S.elect={stage:'signup', pool, cands:[]}; S.multi=[];
+  let done = waitAction();
+  await say('現在開始警長競選。想參選的玩家請舉手，並在手機上選出所有參選的人。');
+  await done;
+  let cands = S.multi.slice(); S.multi=[];
+  const voters = pool.length - cands.length;
+  if(!cands.length){ log('警長競選：無人參選'); S.elect=null; return say('沒有人參選，本局沒有警長。'); }
+  if(cands.length===1){ S.elect=null; return setSheriff(cands[0]); }
+  if(!voters){ log('警長競選：全員上警，無人投票'); S.elect=null; return say('所有人都參選了，沒有人可以投票，本局沒有警長。'); }
+
+  const order = rotate(cands, Math.floor(Math.random()*cands.length));
+  await say(`參選的有${cands.map(nm).join('、')}。從${nm(order[0])}開始，依序發表競選宣言。`);
+  for(const i of order){
+    await say(`請${nm(i)}發言。`);
+    await speechTurn(`🎖️ ${pname(i)} 競選發言`, S.talkSec);
+  }
+
+  S.elect.stage='withdraw'; S.elect.cands=cands; S.multi=[];
+  done = waitAction();
+  await say('有沒有參選人要退水？要退出的人請在手機上選擇，沒有就直接按確認。');
+  await done;
+  if(S.multi.length) log(`警長競選：${S.multi.map(pname).join('、')} 退水`);
+  cands = cands.filter(i => !S.multi.includes(i)); S.multi=[];
+  if(!cands.length){ S.elect=null; log('警長競選：全員退水'); return say('所有參選人都退水了，本局沒有警長。'); }
+  if(cands.length===1){ S.elect=null; return setSheriff(cands[0]); }
+
+  for(let round=1; round<=2; round++){
+    S.elect.stage='vote'; S.elect.cands=cands; S.elect.round=round; S.sel=null;
+    done = waitAction();
+    await say(round===1 ? '請警下的玩家投票，並在手機上選出得票最高的參選人。' : '請警下的玩家再投一次票。');
+    await done;
+    if(S.sel!=null){ const w=S.sel; S.sel=null; S.elect=null; return setSheriff(w); }
+    if(round===2) break;
+    S.elect.stage='pk'; S.multi=[];
+    done = waitAction();
+    await say('平票。請在手機上選出平票的參選人，進行PK發言。');
+    await done;
+    cands = S.multi.slice(); S.multi=[];
+    for(const i of cands){
+      await say(`請${nm(i)}進行PK發言。`);
+      await speechTurn(`🎖️ ${pname(i)} PK 發言`, S.talkSec);
+    }
+  }
+  S.elect=null; log('警長競選：兩次平票，警徽流失');
+  await say('再次平票，警徽流失，本局沒有警長。');
+}
+function confirmElectVote(tie){ if(tie) S.sel=null; act(); }
+async function setSheriff(i){
+  S.sheriff = i; log(`${pname(i)} 當選警長`);
+  await say(`${nm(i)}當選警長。警長投票時算一點五票，並決定發言順序。`);
+}
+async function passBadge(i){
+  S.badge = {from:i}; S.sel=null;
+  const done = waitAction();
+  await say(`警長${nm(i)}出局，請把警徽移交給一位存活的玩家，或是撕毀警徽。`);
+  await done;
+  const to = S.badge.to; S.badge = null;
+  if(to!=null){
+    S.sheriff = to; log(`警徽由 ${pname(i)} 移交給 ${pname(to)}`);
+    await say(`警徽移交給${nm(to)}。`);
+  } else {
+    S.sheriff = null; log(`${pname(i)} 撕毀警徽`);
+    await say('警長撕毀了警徽，本局不再有警長。');
+  }
+}
+function confirmBadge(tear){ S.badge.to = tear ? null : S.sel; S.sel=null; act(); }
+function skipToVote(){ S.skipRest = true; act(); }
+
+/* ---------- 白天（自動流程） ---------- */
+async function runDay(){
+  const d = S.lastDeaths;
+  if(S.day===1 && S.rules.sheriff) await runElection();
+  S.dayStage='announce';
+  await say(d.length ? `昨晚，${d.map(nm).join('、')}死亡。` : '昨晚是平安夜，沒有人死亡。');
+  if(await processDeaths(d)) return;
+
+  // 首夜死者有遺言
+  if(S.day===1){
+    for(const i of d.filter(i=>S.players[i].cause!=='shot')){
+      S.dayStage='lastwords';
+      await say(`請${nm(i)}發表遺言。`);
+      await speechTurn(`${pname(i)} 的遺言`, S.lastSec);
+    }
+  }
+
+  // 存活玩家依序發言
+  // 警長決定發言方向
+  S.orderDir = 1;
+  if(S.sheriff!=null && S.players[S.sheriff].alive && S.players.filter(p=>p.alive).length>2){
+    S.dayStage='order';
+    const done = waitAction();
+    await say(`請警長${nm(S.sheriff)}決定發言順序，警長最後發言。`);
+    await done;
+  }
+  S.dayStage='discuss'; S.skipRest=false;
+  const order = speakingOrder();
+  await say(`現在開始發言，從${nm(order[0])}開始，依序進行。`);
+  for(const i of order){
+    if(S.skipRest || !S.players[i].alive) break;
+    await say(`請${nm(i)}發言。`);
+    await speechTurn(`${pname(i)} 發言中`, S.talkSec);
+  }
+  S.skipRest=false;
+
+  S.dayStage='vote'; S.sel=null;
+  const done = waitAction();
+  await say('發言結束，請大家投票，並在手機上選出得票最高的玩家。');
+  await done;
+
+  if(S.exiled!=null){
+    await say(`${nm(S.exiled)}被放逐。`);
+    if(await processDeaths([S.exiled])) return;
+    S.dayStage='lastwords';
+    await say(`請${nm(S.exiled)}發表遺言。`);
+    await speechTurn(`${pname(S.exiled)} 的遺言`, S.lastSec);
+  } else {
+    await say('本輪沒有人出局。');
+  }
+  S.dayStage='afterVote';
+  await say('準備好後，請按下按鈕進入夜晚。');
+}
+
+// 每位出局玩家私下查看自己是否有技能（獵人可開槍），不會洩漏身分
+async function processDeaths(list){
+  for(const i of list){
+    S.check = {i, open:false, shot:null};
+    const done = waitAction();
+    await say(`請${nm(i)}拿起手機，確認自己是否有技能可以發動。`);
+    await done;
+    const shot = S.check.shot;
+    S.check = null;
+    if(shot!=null){
+      const v = S.players[shot]; v.alive=false; v.cause='shot';
+      log(`獵人 ${pname(i)} 開槍帶走 ${pname(shot)}`);
+      await say(`${nm(i)}發動技能，帶走了${nm(shot)}。`);
+    } else render();
+    if(S.sheriff===i) await passBadge(i);
+    if(shot!=null && S.sheriff===shot) await passBadge(shot);
+  }
+  return checkEnd();
+}
+function confirmShot(skip){ S.check.shot = skip ? null : S.sel; S.sel=null; act(); }
+function confirmVote(skip){
+  if(skip || S.sel==null){ S.exiled=null; log(`第${S.day}天：無人被放逐`); }
+  else {
+    const p = S.players[S.sel]; p.alive=false; p.cause='vote'; S.exiled=S.sel;
+    log(`第${S.day}天：${pname(S.sel)} 被投票放逐`);
+  }
+  S.sel=null; act();
+}
+
+function checkWin(){
+  const alive = S.players.filter(p=>p.alive);
+  if(!alive.some(p=>p.role==='wolf')) return 'good';
+  const gods = alive.filter(p=>GODS.includes(p.role)).length;
+  const vill = alive.filter(p=>p.role==='villager').length;
+  const hasG = S.players.some(p=>GODS.includes(p.role)), hasV = hasRole('villager');
+  if(S.rules.win==='edge'){ if((hasG && gods===0) || (hasV && vill===0)) return 'wolf'; }
+  else if(gods+vill===0) return 'wolf';
+  return null;
+}
+async function checkEnd(){
+  const w = checkWin();
+  if(!w) return false;
+  S.winner = w; S.phase = 'end';
+  log(w==='good'?'好人陣營獲勝':'狼人陣營獲勝');
+  await say(w==='good' ? '遊戲結束，好人陣營獲勝！' : '遊戲結束，狼人陣營獲勝！');
+  return true;
+}
+
+function renderDay(){
+  let h = `<div class="card center fade"><div class="big">☀️ 第 ${S.day} 天</div>${caption()}</div>`;
+
+  if(S.check){
+    const i = S.check.i, p = S.players[i];
+    if(!S.check.open){
+      return h + `<div class="card center fade"><h2>請把手機交給</h2><div class="big">${pname(i)}</div>
+        <p class="muted">只有本人可以看下一個畫面</p>
+        <button class="primary" onclick="S.check.open=true;render()">我是 ${esc(p.name)}，查看</button></div>`;
+    }
+    if(p.role==='hunter' && p.cause!=='poison'){
+      return h + `<div class="card center fade"><h2>🏹 你是獵人</h2><p>可以開槍帶走一名玩家，也可以選擇不開槍。</p>`
+        + picker([i])
+        + `<div class="row"><button onclick="confirmShot(true)">不開槍</button>
+           <button class="primary danger" ${S.sel==null?'disabled':''} onclick="confirmShot(false)">開槍</button></div>
+           <p class="muted">選完請把手機放回桌上</p></div>`;
+    }
+    return h + `<div class="card center fade"><p>${p.role==='hunter'?'你被毒死了，獵人技能無法發動。':'你沒有可以發動的技能。'}</p>
+      <button class="primary" onclick="confirmShot(true)">我知道了，放回桌上</button></div>`;
+  }
+
+  if(S.badge){
+    return h + `<div class="card center fade"><h2>🎖️ 移交警徽</h2>
+      <p>警長 ${pname(S.badge.from)} 出局，請選擇警徽要交給誰。</p>` + picker([S.badge.from])
+      + `<div class="row"><button onclick="confirmBadge(true)">撕毀警徽</button>
+         <button class="primary" ${S.sel==null?'disabled':''} onclick="confirmBadge(false)">移交警徽</button></div></div>`;
+  }
+
+  if(S.dayStage==='order' && !S.turn){
+    const sh = S.sheriff, a = nextAliveFrom(sh, 1), b = nextAliveFrom(sh, -1);
+    return h + `<div class="card center fade"><h2>🎖️ 警長決定發言順序</h2>
+      <p class="muted">警長 ${pname(sh)} 會在最後發言（歸票）</p>
+      <button class="primary" onclick="S.orderDir=1;act()">從 ${pname(a)} 開始（號碼往上）</button>
+      <button class="primary" onclick="S.orderDir=-1;act()">從 ${pname(b)} 開始（號碼往下）</button></div>`;
+  }
+
+  if(S.dayStage==='elect' && S.elect && !S.turn){
+    const E = S.elect;
+    if(E.stage==='signup'){
+      return h + `<div class="card center fade"><h2>🎖️ 警長競選｜報名</h2>
+        <p class="muted">點選所有舉手參選的玩家</p>` + listPicker(E.pool, true)
+        + `<button class="primary" onclick="act()">${S.multi.length?`確認，共 ${S.multi.length} 人參選`:'沒有人參選'}</button></div>`;
+    }
+    if(E.stage==='withdraw'){
+      return h + `<div class="card center fade"><h2>🎖️ 退水</h2>
+        <p class="muted">點選要退出競選的參選人（退水後不能投票）</p>` + listPicker(E.cands, true)
+        + `<button class="primary" onclick="act()">${S.multi.length?`確認，${S.multi.length} 人退水`:'沒有人退水'}</button></div>`;
+    }
+    if(E.stage==='vote'){
+      return h + `<div class="card center fade"><h2>🎖️ 警長投票${E.round===2?'（第二輪）':''}</h2>
+        <p class="muted">只有警下（沒參選）的玩家可以投票。點選得票最高的參選人。</p>` + listPicker(E.cands, false)
+        + `<div class="row"><button onclick="confirmElectVote(true)">平票</button>
+           <button class="primary" ${S.sel==null?'disabled':''} onclick="confirmElectVote(false)">確認當選</button></div></div>`;
+    }
+    if(E.stage==='pk'){
+      return h + `<div class="card center fade"><h2>🎖️ 平票 PK</h2>
+        <p class="muted">點選平票的參選人（至少 2 人）</p>` + listPicker(E.cands, true)
+        + `<button class="primary" ${S.multi.length<2?'disabled':''} onclick="act()">開始 PK 發言</button></div>`;
+    }
+  }
+
+  if(S.turn){
+    const t = S.turn;
+    h += `<div class="card center fade"><h2>${t.label}</h2>
+      ${t.total>0 ? `<div id="timer" class="timer ${t.left<=10?'bad':''}">${fmt(t.left)}</div>`
+                  : `<div class="timer muted">不限時</div>`}
+      <button class="primary" onclick="act()">✓ 說完了</button>
+      ${S.dayStage==='discuss' ? `<button class="ghost" style="margin-top:8px;width:100%" onclick="skipToVote()">跳過剩下的發言，直接投票</button>` : ''}
+      </div>`;
+  } else if(S.dayStage==='vote'){
+    h += `<div class="card center fade"><h2>🗳️ 投票放逐</h2>
+      ${S.sheriff!=null && S.players[S.sheriff].alive ? `<p class="note">🎖️ 警長 ${pname(S.sheriff)} 的票算 1.5 票</p>` : ''}
+      <p class="muted">點選得票最高的玩家；平票或棄票請按「無人出局」。</p>` + picker()
+      + `<div class="row"><button onclick="confirmVote(true)">無人出局</button>
+         <button class="primary danger" ${S.sel==null?'disabled':''} onclick="confirmVote(false)">確認放逐</button></div></div>`;
+  } else if(S.dayStage==='afterVote'){
+    h += `<button class="primary" ${S.speaking?'disabled':''} onclick="goNight()">🌙 進入第 ${S.day+1} 晚</button>`;
+  }
+  return h;
+}
+
+/* ---------- 結束 & 面板 ---------- */
+function roster(showRole){
+  // 競選期間昨晚死訊還沒公布，先當作存活顯示
+  const hide = !showRole && S.phase==='day' && S.dayStage==='elect';
+  return `<div class="roster">${S.players.map((p,i)=>{
+    const alive = p.alive || (hide && S.lastDeaths.includes(i));
+    return `<div class="${alive?'':'out'}">
+    <span>${pname(i)}${badgeIcon(i)}</span><span>${showRole?`${ROLES[p.role].icon} ${ROLES[p.role].name}`:''}
+    ${alive?'<span class="tag good">存活</span>':`<span class="tag off">${CAUSE[p.cause]}</span>`}</span></div>`;}).join('')}</div>`;
+}
+function renderEnd(){
+  const good = S.winner==='good';
+  return `<div class="card center fade"><div class="result">${good?'🎉':'🐺'}</div>
+    <div class="banner ${good?'':'bad'}">${good?'好人陣營獲勝！':'狼人陣營獲勝！'}</div>
+    <p class="muted">共進行了 ${S.day} 天</p></div>
+    <div class="card"><h2>身分揭曉</h2>${roster(true)}
+    <h3>完整遊戲紀錄</h3><ol class="log">${S.log.map(t=>`<li>${t}</li>`).join('')}</ol></div>
+    <button class="primary" onclick="startGame()">🔁 同樣設定再玩一局</button>
+    <button class="primary" style="background:var(--card2);color:var(--text)" onclick="S.phase='setup';render()">回到設定</button>`;
+}
+function renderPanel(){
+  const hide = S.phase==='day' && S.dayStage==='elect';
+  const alive = S.players.filter((p,i)=>p.alive || (hide && S.lastDeaths.includes(i))).length;
+  return `<details class="card" ${S.panelOpen?'open':''} ontoggle="S.panelOpen=this.open">
+    <summary>👥 存活玩家（${alive} / ${S.n}）</summary>
+    ${roster(false)}
+    <label class="role-row"><span>🔊 語音朗讀</span>
+      <input type="checkbox" ${S.voice?'checked':''} onchange="S.voice=this.checked;if(!this.checked&&canSpeak)speechSynthesis.cancel()"></label>
+    ${S.confirmQuit
+      ? `<p class="note">確定要放棄這局嗎？目前的身分和紀錄都會清除。</p>
+         <div class="row"><button onclick="S.confirmQuit=false;render()">取消</button>
+         <button class="danger" onclick="quitGame()">確定放棄</button></div>`
+      : `<button class="ghost" onclick="S.confirmQuit=true;render()">↩︎ 放棄本局，回到設定</button>`}
+  </details>`;
+}
+function quitGame(){
+  S.runId++; if(canSpeak) speechSynthesis.cancel();
+  S.confirmQuit=false; S.panelOpen=false; S.phase='setup'; S.caption=''; S.speaking=false;
+  render(); window.scrollTo(0,0);
+}
+
+/* ---------- 主渲染 ---------- */
+function render(){
+  document.body.classList.toggle('day', S.phase==='day' || S.phase==='end');
+  const tags = {setup:'設定', deal:'發牌中', night:`第 ${S.day} 晚`, day:`第 ${S.day} 天`, end:'遊戲結束'};
+  document.getElementById('phaseTag').textContent = tags[S.phase];
+  let h = {setup:renderSetup, deal:renderDeal, night:renderNight, day:renderDay, end:renderEnd}[S.phase]();
+  if(S.phase==='night' || S.phase==='day') h += renderPanel();
+  document.getElementById('main').innerHTML = h;
+}
+preset(S.n);
+render();
+</script>
+</body>
+</html>
